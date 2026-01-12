@@ -3,387 +3,374 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>8-Bit Asteroids</title>
+    <title>Neon Arcade 2D</title>
     <style>
-        @import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+        @import url('https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap');
 
         :root {
-            --neon-green: #39ff14;
-            --crt-bg: #0d1117;
-            --ui-bg: rgba(0, 20, 0, 0.9);
+            --neon-blue: #00f3ff;
+            --neon-pink: #ff00ff;
+            --neon-red: #ff3333;
+            --glass-bg: rgba(0, 10, 20, 0.65);
+            --border-color: rgba(0, 243, 255, 0.5);
         }
 
         body {
             margin: 0;
-            padding: 0;
             background-color: #000;
-            color: var(--neon-green);
-            font-family: 'Press Start 2P', cursive;
+            color: var(--neon-blue);
+            font-family: 'Orbitron', sans-serif;
             overflow: hidden;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-            justify-content: center;
-            height: 100vh;
             touch-action: none;
+            user-select: none;
         }
 
         #game-container {
-            position: relative;
+            position: absolute;
+            top: 0;
+            left: 0;
             width: 100%;
             height: 100%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            box-shadow: 0 0 20px rgba(57, 255, 20, 0.2);
+            background: radial-gradient(circle at center, #1a1a2e 0%, #000000 100%);
         }
 
         canvas {
-            background-color: #000;
             display: block;
+            width: 100%;
+            height: 100%;
+            position: absolute;
+            z-index: 1;
             image-rendering: pixelated;
         }
 
-        /* CRT Scanline Effect Overlay */
+        /* Scanline Overlay */
         .scanlines {
             position: absolute;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: linear-gradient(
-                to bottom,
-                rgba(255,255,255,0),
-                rgba(255,255,255,0) 50%,
-                rgba(0,0,0,0.2) 50%,
-                rgba(0,0,0,0.2)
-            );
+            top: 0; left: 0; right: 0; bottom: 0;
+            background: linear-gradient(rgba(18, 16, 16, 0) 50%, rgba(0, 0, 0, 0.1) 50%);
             background-size: 100% 4px;
             pointer-events: none;
-            z-index: 10;
+            z-index: 5;
         }
 
-        .screen-glow {
+        /* --- UI LAYERS --- */
+        #ui-layer {
             position: absolute;
             top: 0;
             left: 0;
             width: 100%;
-            height: 100%;
-            box-shadow: inset 0 0 50px rgba(0,0,0,0.9);
-            pointer-events: none;
-            z-index: 11;
-        }
-
-        #ui-layer {
-            position: absolute;
-            top: 20px;
-            left: 20px;
+            padding: 20px;
+            box-sizing: border-box;
             z-index: 20;
-            text-shadow: 2px 2px 0px #000;
             pointer-events: none;
-        }
-
-        #score-display { font-size: 16px; margin-bottom: 10px; }
-        #lives-display { font-size: 16px; }
-
-        /* Settings Button & Menu */
-        #settings-btn {
-            position: absolute;
-            top: 20px;
-            right: 20px;
-            z-index: 40;
-            background: transparent;
-            border: 2px solid var(--neon-green);
-            color: var(--neon-green);
-            font-family: 'Press Start 2P', cursive;
-            font-size: 20px;
-            width: 40px;
-            height: 40px;
-            cursor: pointer;
             display: flex;
-            justify-content: center;
-            align-items: center;
-            pointer-events: auto;
-        }
-
-        #settings-btn:hover {
-            background: var(--neon-green);
-            color: black;
-        }
-
-        #settings-modal {
-            position: absolute;
-            top: 70px;
-            right: 20px;
-            width: 250px;
-            background: var(--ui-bg);
-            border: 2px solid var(--neon-green);
-            padding: 15px;
-            z-index: 40;
-            display: none; /* Hidden by default */
-            flex-direction: column;
+            /* Stacked vertically on the left */
+            flex-direction: column; 
+            justify-content: flex-start;
+            align-items: flex-start;
             gap: 15px;
-            pointer-events: auto;
         }
 
-        #settings-modal.show {
-            display: flex;
+        .hud-panel {
+            background: var(--glass-bg);
+            border: 1px solid var(--border-color);
+            padding: 10px 20px;
+            border-radius: 5px;
+            backdrop-filter: blur(8px);
+            box-shadow: 0 0 15px rgba(0, 243, 255, 0.1);
+            transform: skewX(-10deg);
+            min-width: 140px;
         }
 
-        .setting-row {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
+        .hud-text {
+            font-size: 18px;
+            font-weight: 700;
+            text-shadow: 0 0 10px var(--neon-blue);
+            letter-spacing: 2px;
+            transform: skewX(10deg);
+        }
+
+        .hud-label {
             font-size: 10px;
+            color: rgba(255,255,255,0.7);
+            display: block;
+            margin-bottom: 2px;
+            transform: skewX(10deg);
         }
 
-        /* Retro Checkbox */
-        .toggle-switch {
-            appearance: none;
-            width: 40px;
-            height: 20px;
-            border: 2px solid var(--neon-green);
-            background: transparent;
-            position: relative;
-            cursor: pointer;
-            outline: none;
-        }
-
-        .toggle-switch::after {
-            content: '';
-            position: absolute;
-            top: 2px;
-            left: 2px;
-            width: 12px;
-            height: 12px;
-            background: var(--neon-green);
-            transition: left 0.1s;
-        }
-
-        .toggle-switch:checked::after {
-            left: 22px;
-        }
-
+        /* --- SCREENS --- */
         #start-screen, #game-over-screen {
             position: absolute;
             top: 50%;
             left: 50%;
             transform: translate(-50%, -50%);
             text-align: center;
-            z-index: 30;
-            background: rgba(0, 0, 0, 0.85);
-            padding: 40px;
-            border: 4px solid var(--neon-green);
-            display: flex;
-            flex-direction: column;
-            gap: 20px;
+            background: rgba(0, 5, 10, 0.85);
+            border: 2px solid var(--neon-blue);
+            padding: 50px;
+            width: 300px;
+            box-shadow: 0 0 30px rgba(0, 243, 255, 0.2), inset 0 0 50px rgba(0, 243, 255, 0.1);
+            backdrop-filter: blur(15px);
+            z-index: 100;
+            border-radius: 20px;
+            clip-path: polygon(20px 0, 100% 0, 100% calc(100% - 20px), calc(100% - 20px) 100%, 0 100%, 0 20px);
         }
 
         h1 {
-            font-size: 32px;
-            margin: 0;
-            text-transform: uppercase;
-            text-shadow: 4px 4px 0px #004400;
+            font-size: 48px;
+            margin: 0 0 10px 0;
+            color: #fff;
+            text-shadow: 0 0 10px var(--neon-blue), 2px 2px 0px var(--neon-pink);
+            font-weight: 900;
+            font-style: italic;
+            letter-spacing: -2px;
         }
 
-        p {
-            font-size: 12px;
-            line-height: 1.6;
-        }
+        h1 span { color: var(--neon-pink); }
+        p { color: #aaa; font-size: 12px; margin-bottom: 30px; letter-spacing: 1px; }
 
-        button.retro-btn {
-            background: transparent;
-            border: 2px solid var(--neon-green);
-            color: var(--neon-green);
-            font-family: 'Press Start 2P', cursive;
-            padding: 15px 20px;
-            font-size: 14px;
+        .btn {
+            background: linear-gradient(45deg, transparent 5%, var(--neon-blue) 5%);
+            color: #000;
+            border: none;
+            padding: 15px 40px;
+            font-family: 'Orbitron', sans-serif;
+            font-size: 18px;
+            font-weight: 900;
             cursor: pointer;
             text-transform: uppercase;
-            transition: all 0.1s;
+            box-shadow: 6px 0px 0px #0099aa;
+            transition: all 0.2s;
+            display: inline-block;
+            margin-top: 10px;
+            letter-spacing: 2px;
         }
 
-        button.retro-btn:hover {
-            background: var(--neon-green);
-            color: #000;
+        .btn:hover {
+            background: linear-gradient(45deg, transparent 5%, #fff 5%);
+            box-shadow: 6px 0px 0px var(--neon-pink);
+            transform: translateX(-2px);
+            color: var(--neon-pink);
         }
 
-        button.retro-btn:active {
-            transform: scale(0.95);
-        }
+        .hidden { display: none !important; }
 
-        .hidden {
-            display: none !important;
+        /* --- SETTINGS --- */
+        #settings-btn {
+            position: absolute; top: 20px; right: 20px; width: 40px; height: 40px;
+            border: 1px solid var(--neon-blue); background: var(--glass-bg); color: var(--neon-blue);
+            display: flex; justify-content: center; align-items: center; font-size: 20px;
+            cursor: pointer; z-index: 101; border-radius: 5px; transition: 0.3s;
         }
+        #settings-btn:hover { background: var(--neon-blue); color: #000; box-shadow: 0 0 15px var(--neon-blue); }
+        
+        #settings-modal {
+            position: absolute; top: 70px; right: 20px; background: var(--glass-bg);
+            border: 1px solid var(--neon-blue); padding: 20px; display: none;
+            flex-direction: column; gap: 15px; z-index: 101; backdrop-filter: blur(10px);
+            border-radius: 5px; width: 180px;
+        }
+        #settings-modal.show { display: flex; }
+        .setting-row { display: flex; justify-content: space-between; align-items: center; font-size: 12px; font-weight: bold;}
+        
+        input[type="checkbox"] {
+            appearance: none; width: 40px; height: 20px; background: #002233;
+            border: 1px solid var(--neon-blue); border-radius: 10px; position: relative; cursor: pointer; outline: none;
+        }
+        input[type="checkbox"]::after {
+            content: ''; position: absolute; top: 2px; left: 2px; width: 14px; height: 14px;
+            background: #555; border-radius: 50%; transition: 0.3s;
+        }
+        input[type="checkbox"]:checked { background: rgba(0, 243, 255, 0.3); }
+        input[type="checkbox"]:checked::after { left: 22px; background: var(--neon-blue); box-shadow: 0 0 10px var(--neon-blue); }
 
-        /* Touch Controls */
+        /* --- MOBILE CONTROLS --- */
         #mobile-controls {
-            position: absolute;
-            bottom: 20px;
-            width: 100%;
-            height: 160px;
-            z-index: 25;
-            display: flex;
-            justify-content: space-between;
-            padding: 0 20px;
-            box-sizing: border-box;
-            pointer-events: none;
+            position: absolute; bottom: 30px; width: 100%; display: flex;
+            justify-content: space-between; padding: 0 40px; box-sizing: border-box;
+            pointer-events: none; z-index: 50;
         }
-
-        .control-group {
-            pointer-events: auto;
-            display: flex;
-            gap: 15px;
-            align-items: flex-end;
-        }
-
+        .control-group { display: flex; gap: 25px; pointer-events: auto; }
+        
         .touch-btn {
-            width: 60px;
-            height: 60px;
-            border: 2px solid rgba(57, 255, 20, 0.5);
-            background: rgba(0, 0, 0, 0.5);
-            border-radius: 50%;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            color: rgba(57, 255, 20, 0.8);
-            font-size: 24px;
-            user-select: none;
-            -webkit-user-select: none;
-            touch-action: manipulation;
+            width: 70px; height: 70px; border: 2px solid rgba(255, 255, 255, 0.1);
+            background: rgba(0, 243, 255, 0.05); border-radius: 50%; display: flex;
+            justify-content: center; align-items: center; color: var(--neon-blue);
+            font-size: 24px; backdrop-filter: blur(5px); transition: 0.1s;
+            box-shadow: 0 0 10px rgba(0, 243, 255, 0.1);
         }
-
         .touch-btn:active, .touch-btn.active {
-            background: rgba(57, 255, 20, 0.3);
-            transform: scale(0.95);
+            background: rgba(0, 243, 255, 0.4); border-color: var(--neon-blue);
+            transform: scale(0.95); box-shadow: 0 0 25px var(--neon-blue); color: #fff;
         }
-
-        @media (max-width: 768px) {
-            h1 { font-size: 24px; }
-            #start-screen { padding: 20px; width: 80%; }
+        .fire-btn { border-color: rgba(255, 0, 255, 0.3); color: var(--neon-pink); background: rgba(255, 0, 255, 0.05); }
+        .fire-btn:active, .fire-btn.active {
+            background: rgba(255, 0, 255, 0.4); border-color: var(--neon-pink); box-shadow: 0 0 25px var(--neon-pink);
         }
+        @media (max-width: 600px) { #start-screen, #game-over-screen { width: 80%; padding: 30px; } h1 { font-size: 32px; } }
     </style>
 </head>
 <body>
 
-    <div id="game-container">
-        <div class="scanlines"></div>
-        <div class="screen-glow"></div>
-        
-        <canvas id="gameCanvas"></canvas>
+<div id="game-container">
+    <div class="scanlines"></div>
+    <canvas id="gameCanvas"></canvas>
 
-        <!-- UI Layers -->
-        <div id="ui-layer">
-            <div id="score-display">SCORE: 0</div>
-            <div id="lives-display">LIVES: 3</div>
+    <div id="ui-layer">
+        <!-- Stacked on Left -->
+        <div class="hud-panel" style="border-color: var(--neon-red); box-shadow: 0 0 15px rgba(255, 51, 51, 0.1);">
+            <span class="hud-label" style="color: #ffaaaa">INTEGRITY</span>
+            <div class="hud-text" id="lives-display" style="color: var(--neon-red); text-shadow: 0 0 10px var(--neon-red);">100%</div>
         </div>
-
-        <!-- Settings -->
-        <button id="settings-btn">⚙</button>
-        <div id="settings-modal">
-            <div class="setting-row">
-                <span>MUSIC</span>
-                <input type="checkbox" id="music-toggle" class="toggle-switch" checked>
-            </div>
-            <div class="setting-row">
-                <span>TOUCH CTRL</span>
-                <input type="checkbox" id="touch-toggle" class="toggle-switch" checked>
-            </div>
-        </div>
-
-        <!-- Screens -->
-        <div id="start-screen">
-            <h1>Asteroid<br>8-Bit</h1>
-            <p>Destory squares.<br>Don't die.</p>
-            <p style="color: #aaa; font-size: 10px;">ARROWS/WASD + SPACE<br>TOUCH TO PLAY</p>
-            <button class="retro-btn" id="start-btn">INSERT COIN (START)</button>
-        </div>
-
-        <div id="game-over-screen" class="hidden">
-            <h1>GAME OVER</h1>
-            <p id="final-score">SCORE: 0</p>
-            <button class="retro-btn" id="restart-btn">TRY AGAIN</button>
-        </div>
-
-        <div id="mobile-controls">
-            <div class="control-group">
-                <div class="touch-btn" id="btn-left">◀</div>
-                <div class="touch-btn" id="btn-right">▶</div>
-            </div>
-            <div class="control-group">
-                <div class="touch-btn" id="btn-shoot">●</div>
-                <div class="touch-btn" id="btn-thrust">▲</div>
-            </div>
+        <div class="hud-panel">
+            <span class="hud-label">SCORE</span>
+            <div class="hud-text" id="score-display">0000</div>
         </div>
     </div>
 
+    <div id="settings-btn">⚙</div>
+    <div id="settings-modal">
+        <div class="setting-row">
+            <span>SFX</span>
+            <input type="checkbox" id="sfx-toggle" checked>
+        </div>
+        <div class="setting-row">
+            <span>MUSIC</span>
+            <input type="checkbox" id="music-toggle" checked>
+        </div>
+        <div class="setting-row">
+            <span>TOUCH UI</span>
+            <input type="checkbox" id="touch-toggle" checked>
+        </div>
+    </div>
+
+    <div id="start-screen">
+        <h1>NEON<br><span>STORM</span></h1>
+        <p>SYSTEM READY // AWAITING PILOT</p>
+        <button class="btn" id="start-btn">ENGAGE</button>
+    </div>
+
+    <div id="game-over-screen" class="hidden">
+        <h1 style="color: var(--neon-red); text-shadow: 0 0 20px var(--neon-red);">SYSTEM<br>FAILURE</h1>
+        <p id="final-score" style="font-size: 16px; color: #fff; margin-bottom: 20px;">SCORE: 0</p>
+        <button class="btn" id="restart-btn">REBOOT</button>
+    </div>
+
+    <div id="mobile-controls">
+        <div class="control-group">
+            <div class="touch-btn" id="btn-left">◀</div>
+            <div class="touch-btn" id="btn-right">▶</div>
+        </div>
+        <div class="control-group">
+            <div class="touch-btn fire-btn" id="btn-shoot">●</div>
+            <div class="touch-btn" id="btn-thrust">▲</div>
+        </div>
+    </div>
+</div>
+
 <script>
 /**
- * 8-BIT ASTEROIDS
- * Audio Synthesis, Settings & Game Logic
+ * 2D NEON ASTEROIDS
+ * Canvas API implementation (Retro Style + Cool UI)
  */
 
-// --- Audio System (Web Audio API) ---
-const AudioSys = (() => {
-    let ctx = null;
-    let masterGain = null;
+// --- ADVANCED AUDIO SYSTEM (SEQUENCER) ---
+const SFX = (() => {
+    let ctx, masterGain, musicGain;
+    let sfxEnabled = true;
+    let musicEnabled = true;
     let musicInterval = null;
-    let musicIndex = 0;
-    let musicMuted = false;
-
-    // Simple looping bassline pattern (frequencies in Hz)
-    const bassLine = [
-        110, 0, 110, 0, // A2
-        130.81, 0, 130.81, 0, // C3
-        146.83, 0, 146.83, 0, // D3
-        164.81, 0, 164.81, 0  // E3
-    ];
+    let beatIndex = 0; // 16th note counter
 
     function init() {
         if (!ctx) {
             ctx = new (window.AudioContext || window.webkitAudioContext)();
+            
+            // Master Gain (SFX)
             masterGain = ctx.createGain();
-            masterGain.gain.value = 0.5; // Boosted Master Volume
+            masterGain.gain.value = 0.3; // Loud enough SFX
             masterGain.connect(ctx.destination);
+
+            // Music Gain (Separate)
+            musicGain = ctx.createGain();
+            musicGain.gain.value = 0.25; // Balanced music
+            musicGain.connect(ctx.destination);
         }
-        if (ctx.state === 'suspended') {
-            ctx.resume();
-        }
+        if (ctx.state === 'suspended') ctx.resume();
+        
+        if(musicEnabled && running) startMusic();
     }
 
-    // Helper to ensure audio is running on any interaction
-    function checkResume() {
-        if (ctx && ctx.state === 'suspended') {
-            ctx.resume();
-        }
+    function playOsc(freq, type, startTime, dur, vol, node) {
+        if (!ctx) return;
+        const osc = ctx.createOscillator();
+        const g = ctx.createGain();
+        osc.type = type;
+        osc.frequency.value = freq;
+        g.gain.setValueAtTime(vol, startTime);
+        g.gain.exponentialRampToValueAtTime(0.01, startTime + dur);
+        osc.connect(g);
+        g.connect(node || musicGain);
+        osc.start(startTime);
+        osc.stop(startTime + dur);
     }
 
-    function toggleMusic(mute) {
-        musicMuted = mute;
-        if (musicMuted) {
-            clearInterval(musicInterval);
-            musicInterval = null;
-        } else if (gameRunning) {
-            startMusic();
+    function playNoise(startTime, dur, vol) {
+        if (!ctx) return;
+        const bufSize = ctx.sampleRate * dur;
+        const buffer = ctx.createBuffer(1, bufSize, ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufSize; i++) data[i] = Math.random() * 2 - 1;
+        const noise = ctx.createBufferSource();
+        noise.buffer = buffer;
+        const g = ctx.createGain();
+        g.gain.setValueAtTime(vol, startTime);
+        g.gain.exponentialRampToValueAtTime(0.01, startTime + dur);
+        noise.connect(g);
+        g.connect(musicGain);
+        noise.start(startTime);
+    }
+
+    function tick() {
+        if(!musicEnabled || !running || !ctx) return;
+        const now = ctx.currentTime;
+        const noteLen = 0.15; // length of 16th note
+
+        // 1. Driving Bassline (Sawtooth, offbeat feel)
+        // Pattern: D2, D2, F2, F2, G2, G2, A2, A2
+        const bassFreqs = [73.4, 73.4, 87.3, 87.3, 98, 98, 110, 110];
+        if (beatIndex % 2 === 0) { // 8th notes
+            const note = Math.floor((beatIndex % 32) / 4); 
+            playOsc(bassFreqs[note] || 73.4, 'sawtooth', now, 0.2, 0.4, musicGain);
         }
+
+        // 2. Arpeggio Lead (Square, very arcade)
+        // D Minor Pentatonic high
+        const arpNotes = [
+            293.7, 440, 587.3, 440, // D4 A4 D5 A4
+            349.2, 523.3, 698.5, 523.3, // F4 C5 F5 C5
+            392, 587.3, 784, 587.3, // G4 D5 G5 D5
+            440, 659.3, 880, 659.3  // A4 E5 A5 E5
+        ];
+        const arpFreq = arpNotes[beatIndex % 16];
+        playOsc(arpFreq, 'square', now, 0.1, 0.15, musicGain);
+
+        // 3. Drums (Noise & Deep Sine)
+        if (beatIndex % 8 === 0) { // Kick on 1
+            playOsc(60, 'sine', now, 0.1, 0.8, musicGain); // Thump
+        }
+        if (beatIndex % 8 === 4) { // Snare on 2
+            playNoise(now, 0.1, 0.3);
+        }
+
+        beatIndex++;
     }
 
     function startMusic() {
-        if (musicInterval) clearInterval(musicInterval);
-        if (musicMuted) return;
-
-        musicIndex = 0;
-        // 120 BPM approx (125ms per 16th note step, we play 8th notes here)
-        musicInterval = setInterval(() => {
-            if (!gameRunning) return;
-            
-            const freq = bassLine[musicIndex % bassLine.length];
-            if (freq > 0) {
-                // Increased volume from 0.1 to 0.4
-                playTone(freq, 'triangle', 0.1, 0.4); 
-            }
-            musicIndex++;
-        }, 200); 
+        if(musicInterval) return;
+        beatIndex = 0;
+        // 120 BPM = 500ms per beat = 125ms per 16th note
+        musicInterval = setInterval(tick, 125); 
     }
 
     function stopMusic() {
@@ -391,130 +378,61 @@ const AudioSys = (() => {
         musicInterval = null;
     }
 
-    function playTone(freq, type, duration, vol = 1) {
-        // Removed suspended check - try to play anyway and attempt resume
-        if (!ctx) return;
-        if (ctx.state === 'suspended') ctx.resume();
-
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        
-        osc.type = type;
-        osc.frequency.setValueAtTime(freq, ctx.currentTime);
-        
-        gain.gain.setValueAtTime(vol * 0.5, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
-
-        osc.connect(gain);
-        gain.connect(masterGain);
-        
-        osc.start();
-        osc.stop(ctx.currentTime + duration);
-    }
-
     function shoot() {
-        if (!ctx) return;
-        if (ctx.state === 'suspended') ctx.resume();
-
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'square';
-        osc.frequency.setValueAtTime(800, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.1);
-        gain.gain.setValueAtTime(0.3, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
-        
-        osc.connect(gain);
-        gain.connect(masterGain);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.1);
-    }
-
-    function thrust() {
-        if (!ctx) return;
-        if (ctx.state === 'suspended') ctx.resume();
-
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(50, ctx.currentTime);
-        gain.gain.setValueAtTime(0.2, ctx.currentTime);
-        gain.gain.linearRampToValueAtTime(0, ctx.currentTime + 0.1);
-
-        osc.connect(gain);
-        gain.connect(masterGain);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.1);
+        if(!sfxEnabled) return;
+        // Pew Pew
+        playOsc(800, 'square', ctx.currentTime, 0.1, 0.2, masterGain);
+        if(ctx.createOscillator) {
+            // Frequency slide for pew effect
+            const osc = ctx.createOscillator();
+            const g = ctx.createGain();
+            osc.frequency.setValueAtTime(800, ctx.currentTime);
+            osc.frequency.exponentialRampToValueAtTime(300, ctx.currentTime + 0.1);
+            g.gain.setValueAtTime(0.3, ctx.currentTime);
+            g.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.1);
+            osc.connect(g); g.connect(masterGain);
+            osc.start(); osc.stop(ctx.currentTime + 0.1);
+        }
     }
 
     function explode() {
-        if (!ctx) return;
-        if (ctx.state === 'suspended') ctx.resume();
-
-        const osc = ctx.createOscillator();
-        const gain = ctx.createGain();
-        osc.type = 'sawtooth';
-        osc.frequency.setValueAtTime(100, ctx.currentTime);
-        osc.frequency.exponentialRampToValueAtTime(10, ctx.currentTime + 0.3);
-        
-        gain.gain.setValueAtTime(0.5, ctx.currentTime);
-        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-
-        osc.connect(gain);
-        gain.connect(masterGain);
-        osc.start();
-        osc.stop(ctx.currentTime + 0.3);
+        if(!sfxEnabled) return;
+        playOsc(100, 'sawtooth', ctx.currentTime, 0.3, 0.4, masterGain);
+        playNoise(ctx.currentTime, 0.3, 0.5);
     }
 
-    return { init, shoot, thrust, explode, startMusic, stopMusic, toggleMusic, checkResume };
+    function toggleSFX(v) { sfxEnabled = v; }
+    
+    function toggleMusic(v) { 
+        musicEnabled = v;
+        if(musicEnabled && running) startMusic();
+        else stopMusic();
+    }
+
+    function check() { if(ctx && ctx.state==='suspended') ctx.resume(); }
+
+    return { init, shoot, explode, toggleSFX, toggleMusic, check, startMusic, stopMusic };
 })();
 
-// --- Game Constants & State ---
+// --- GAME LOGIC ---
 const canvas = document.getElementById('gameCanvas');
 const ctx = canvas.getContext('2d');
-const startScreen = document.getElementById('start-screen');
-const gameOverScreen = document.getElementById('game-over-screen');
-const scoreEl = document.getElementById('score-display');
-const livesEl = document.getElementById('lives-display');
-const finalScoreEl = document.getElementById('final-score');
-const mobileControls = document.getElementById('mobile-controls');
 
-// Settings Elements
-const settingsBtn = document.getElementById('settings-btn');
-const settingsModal = document.getElementById('settings-modal');
-const musicToggle = document.getElementById('music-toggle');
-const touchToggle = document.getElementById('touch-toggle');
+const COLOR_SHIP = '#00f3ff';
+const COLOR_ENEMY = '#ff3333';
+const COLOR_BULLET = '#ffff00';
 
-// Game Config
 const FPS = 60;
-const FRICTION = 0.7;
 const SHIP_SIZE = 20;
-const SHIP_THRUST = 5;
-const TURN_SPEED = 360;
-const BULLET_SPEED = 400;
-const ROIDS_NUM = 3;
-const ROIDS_SIZE = 80;
-const ROIDS_SPD = 50;
+const TURN_SPEED = 180; 
+const THRUST = 5;
+const FRICTION = 0.95;
 
-// Game State
-let ship;
-let roids = [];
-let bullets = [];
-let particles = [];
-let score = 0;
-let lives = 3;
-let level = 0;
-let gameRunning = false;
+let ship, roids, bullets, particles;
+let score = 0, lives = 3;
+let running = false;
+let keys = { up: false, left: false, right: false, shoot: false };
 
-// Input State
-const keys = {
-    ArrowUp: false,
-    ArrowLeft: false,
-    ArrowRight: false,
-    Space: false
-};
-
-// --- Resizing ---
 function resize() {
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
@@ -522,414 +440,314 @@ function resize() {
 window.addEventListener('resize', resize);
 resize();
 
-// --- Input Handling ---
-document.addEventListener('keydown', (e) => {
-    AudioSys.checkResume(); // Try to resume audio on key press
-    if(e.code === 'Space') keys.Space = true;
-    if(e.code === 'ArrowUp' || e.code === 'KeyW') keys.ArrowUp = true;
-    if(e.code === 'ArrowLeft' || e.code === 'KeyA') keys.ArrowLeft = true;
-    if(e.code === 'ArrowRight' || e.code === 'KeyD') keys.ArrowRight = true;
-});
-
-document.addEventListener('keyup', (e) => {
-    if(e.code === 'Space') keys.Space = false;
-    if(e.code === 'ArrowUp' || e.code === 'KeyW') keys.ArrowUp = false;
-    if(e.code === 'ArrowLeft' || e.code === 'KeyA') keys.ArrowLeft = false;
-    if(e.code === 'ArrowRight' || e.code === 'KeyD') keys.ArrowRight = false;
-});
-
-// --- UI / Settings Logic ---
-
-// Toggle Settings Modal
-settingsBtn.addEventListener('click', (e) => {
-    e.stopPropagation(); // Prevent game interaction
-    settingsModal.classList.toggle('show');
-});
-
-// Close modal when clicking outside
-document.addEventListener('click', (e) => {
-    if (!settingsModal.contains(e.target) && e.target !== settingsBtn) {
-        settingsModal.classList.remove('show');
-    }
-});
-
-// Music Toggle
-musicToggle.addEventListener('change', (e) => {
-    AudioSys.toggleMusic(!e.target.checked); // Checked = Music ON, so mute = false
-});
-
-// Touch Controls Toggle
-touchToggle.addEventListener('change', (e) => {
-    if(e.target.checked) {
-        mobileControls.classList.remove('hidden');
-    } else {
-        mobileControls.classList.add('hidden');
-    }
-});
-
-function setupUiButton(id, keyProp) {
-    const btn = document.getElementById(id);
-    const setKey = (state) => {
-        keys[keyProp] = state;
-        if(state) {
-            btn.classList.add('active');
-            AudioSys.checkResume(); // Try to resume audio on touch
-        }
-        else btn.classList.remove('active');
-    };
-    btn.addEventListener('touchstart', (e) => { e.preventDefault(); setKey(true); });
-    btn.addEventListener('touchend', (e) => { e.preventDefault(); setKey(false); });
-    btn.addEventListener('mousedown', (e) => { setKey(true); });
-    btn.addEventListener('mouseup', (e) => { setKey(false); });
-    btn.addEventListener('mouseleave', (e) => { setKey(false); });
-}
-
-setupUiButton('btn-left', 'ArrowLeft');
-setupUiButton('btn-right', 'ArrowRight');
-setupUiButton('btn-thrust', 'ArrowUp');
-setupUiButton('btn-shoot', 'Space');
-
-// --- Classes ---
-
 class Ship {
     constructor() {
-        this.x = canvas.width / 2;
-        this.y = canvas.height / 2;
-        this.a = 90 / 180 * Math.PI;
+        this.x = canvas.width/2; this.y = canvas.height/2;
+        this.a = Math.PI/2; 
         this.r = SHIP_SIZE;
-        this.canShoot = true;
         this.rot = 0;
         this.thrusting = false;
-        this.thrust = { x: 0, y: 0 };
+        this.thrust = {x:0, y:0};
         this.dead = false;
+        this.canShoot = true;
     }
 
     update() {
-        if (this.dead) return;
-
-        if (keys.ArrowLeft) this.rot = TURN_SPEED / 180 * Math.PI / FPS;
-        else if (keys.ArrowRight) this.rot = -TURN_SPEED / 180 * Math.PI / FPS;
-        else this.rot = 0;
-        this.a += this.rot;
-
-        if (keys.ArrowUp) {
+        if(this.dead) return;
+        
+        if(keys.left) this.a += (TURN_SPEED * Math.PI / 180) / FPS;
+        else if(keys.right) this.a -= (TURN_SPEED * Math.PI / 180) / FPS;
+        
+        if(keys.up) {
             this.thrusting = true;
-            this.thrust.x += SHIP_THRUST * Math.cos(this.a) / FPS;
-            this.thrust.y -= SHIP_THRUST * Math.sin(this.a) / FPS;
-            // AudioSys.thrust(); // Removed booster sound
+            this.thrust.x += THRUST * Math.cos(this.a) / FPS;
+            this.thrust.y -= THRUST * Math.sin(this.a) / FPS; 
         } else {
             this.thrusting = false;
-            this.thrust.x -= FRICTION * this.thrust.x / FPS;
-            this.thrust.y -= FRICTION * this.thrust.y / FPS;
+            this.thrust.x *= FRICTION;
+            this.thrust.y *= FRICTION;
         }
 
         this.x += this.thrust.x;
         this.y += this.thrust.y;
 
-        if (this.x < 0 - this.r) this.x = canvas.width + this.r;
-        else if (this.x > canvas.width + this.r) this.x = 0 - this.r;
-        if (this.y < 0 - this.r) this.y = canvas.height + this.r;
-        else if (this.y > canvas.height + this.r) this.y = 0 - this.r;
+        if(this.x < -this.r) this.x = canvas.width + this.r;
+        else if(this.x > canvas.width + this.r) this.x = -this.r;
+        if(this.y < -this.r) this.y = canvas.height + this.r;
+        else if(this.y > canvas.height + this.r) this.y = -this.r;
 
-        if (keys.Space && this.canShoot) {
-            this.shoot();
-        }
-        if (!keys.Space) this.canShoot = true;
-    }
-
-    shoot() {
-        if (bullets.length < 10) {
-            bullets.push(new Bullet(this.x + 4/3 * this.r * Math.cos(this.a), this.y - 4/3 * this.r * Math.sin(this.a), this.a));
+        if(keys.shoot && this.canShoot) {
+            bullets.push(new Bullet(this.x + 4/3*this.r*Math.cos(this.a), this.y - 4/3*this.r*Math.sin(this.a), this.a));
+            SFX.shoot();
             this.canShoot = false;
-            AudioSys.shoot();
+            setTimeout(()=> { if(!this.dead) this.canShoot = true; }, 200);
         }
     }
 
     draw() {
-        if (this.dead) return;
-        ctx.strokeStyle = '#39ff14';
+        if(this.dead) return;
+        
+        ctx.strokeStyle = COLOR_SHIP;
         ctx.lineWidth = 2;
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = COLOR_SHIP;
 
         ctx.beginPath();
-        ctx.moveTo( 
+        ctx.moveTo(
             this.x + 4/3 * this.r * Math.cos(this.a),
             this.y - 4/3 * this.r * Math.sin(this.a)
         );
-        ctx.lineTo( 
+        ctx.lineTo(
             this.x - this.r * (2/3 * Math.cos(this.a) + Math.sin(this.a)),
             this.y + this.r * (2/3 * Math.sin(this.a) - Math.cos(this.a))
         );
-        ctx.lineTo( 
+        ctx.lineTo(
             this.x - this.r * (2/3 * Math.cos(this.a) - Math.sin(this.a)),
             this.y + this.r * (2/3 * Math.sin(this.a) + Math.cos(this.a))
         );
         ctx.closePath();
         ctx.stroke();
 
-        if (this.thrusting) {
-            ctx.fillStyle = '#ff9900';
-            ctx.strokeStyle = '#ffff00';
+        if(this.thrusting) {
+            ctx.strokeStyle = '#ffaa00';
+            ctx.shadowColor = '#ffaa00';
             ctx.beginPath();
-             ctx.moveTo( 
+            ctx.moveTo(
                 this.x - this.r * (2/3 * Math.cos(this.a) + 0.5 * Math.sin(this.a)),
                 this.y + this.r * (2/3 * Math.sin(this.a) - 0.5 * Math.cos(this.a))
             );
-            ctx.lineTo( 
+            ctx.lineTo(
                 this.x - this.r * 5/3 * Math.cos(this.a),
                 this.y + this.r * 5/3 * Math.sin(this.a)
             );
-             ctx.lineTo( 
+            ctx.lineTo(
                 this.x - this.r * (2/3 * Math.cos(this.a) - 0.5 * Math.sin(this.a)),
                 this.y + this.r * (2/3 * Math.sin(this.a) + 0.5 * Math.cos(this.a))
             );
-            ctx.closePath();
-            ctx.fill();
             ctx.stroke();
         }
-    }
-}
-
-class Bullet {
-    constructor(x, y, a) {
-        this.x = x;
-        this.y = y;
-        this.xv = BULLET_SPEED * Math.cos(a) / FPS;
-        this.yv = -BULLET_SPEED * Math.sin(a) / FPS;
-        this.dist = 0;
-        this.maxDist = canvas.width * 0.8;
-        this.remove = false;
-    }
-
-    update() {
-        this.x += this.xv;
-        this.y += this.yv;
-
-        if (this.x < 0) this.x = canvas.width;
-        else if (this.x > canvas.width) this.x = 0;
-        if (this.y < 0) this.y = canvas.height;
-        else if (this.y > canvas.height) this.y = 0;
-
-        this.dist += Math.sqrt(this.xv**2 + this.yv**2);
-        if (this.dist > this.maxDist) this.remove = true;
-    }
-
-    draw() {
-        ctx.fillStyle = '#fff';
-        ctx.fillRect(this.x - 2, this.y - 2, 4, 4);
+        ctx.shadowBlur = 0;
     }
 }
 
 class Asteroid {
     constructor(x, y, r) {
-        this.x = x;
-        this.y = y;
-        this.r = r || Math.ceil(ROIDS_SIZE / 2);
-        this.a = Math.random() * Math.PI * 2;
-        this.xv = Math.random() * ROIDS_SPD * (Math.random() < 0.5 ? 1 : -1) / FPS;
-        this.yv = Math.random() * ROIDS_SPD * (Math.random() < 0.5 ? 1 : -1) / FPS;
-        if (r < ROIDS_SIZE/2) {
-             this.xv *= 1.5;
-             this.yv *= 1.5;
+        this.x = x; this.y = y;
+        this.r = r || 80;
+        this.xv = Math.random() * 50 * (Math.random()<0.5?1:-1) / FPS;
+        this.yv = Math.random() * 50 * (Math.random()<0.5?1:-1) / FPS;
+        
+        if(this.r < 30) { 
+            this.xv *= 1.5; this.yv *= 1.5; 
+        } else if (this.r > 60) {
+            this.xv *= 0.5; this.yv *= 0.5;
         }
     }
 
     update() {
-        this.x += this.xv;
-        this.y += this.yv;
-
-        if (this.x < 0 - this.r) this.x = canvas.width + this.r;
-        else if (this.x > canvas.width + this.r) this.x = 0 - this.r;
-        if (this.y < 0 - this.r) this.y = canvas.height + this.r;
-        else if (this.y > canvas.height + this.r) this.y = 0 - this.r;
+        this.x += this.xv; this.y += this.yv;
+        if(this.x < -this.r) this.x = canvas.width + this.r;
+        else if(this.x > canvas.width + this.r) this.x = -this.r;
+        if(this.y < -this.r) this.y = canvas.height + this.r;
+        else if(this.y > canvas.height + this.r) this.y = -this.r;
     }
 
     draw() {
-        ctx.strokeStyle = '#39ff14';
+        ctx.strokeStyle = COLOR_ENEMY;
         ctx.lineWidth = 2;
-        const size = this.r * 2;
-        ctx.strokeRect(this.x - this.r, this.y - this.r, size, size);
+        ctx.shadowBlur = 10;
+        ctx.shadowColor = COLOR_ENEMY;
+        
+        const s = this.r * 2;
+        ctx.strokeRect(this.x - this.r, this.y - this.r, s, s);
+        
         ctx.lineWidth = 1;
+        ctx.globalAlpha = 0.5;
         ctx.strokeRect(this.x - this.r/2, this.y - this.r/2, this.r, this.r);
+        ctx.globalAlpha = 1.0;
+        ctx.shadowBlur = 0;
+    }
+}
+
+class Bullet {
+    constructor(x, y, a) {
+        this.x = x; this.y = y;
+        this.xv = 400 * Math.cos(a) / FPS;
+        this.yv = -400 * Math.sin(a) / FPS;
+        this.life = 60;
+        this.remove = false;
+    }
+    update() {
+        this.x += this.xv; this.y += this.yv;
+        this.life--;
+        if(this.x < 0) this.x = canvas.width; else if(this.x > canvas.width) this.x = 0;
+        if(this.y < 0) this.y = canvas.height; else if(this.y > canvas.height) this.y = 0;
+        if(this.life <= 0) this.remove = true;
+    }
+    draw() {
+        ctx.fillStyle = COLOR_BULLET;
+        ctx.shadowBlur = 5; ctx.shadowColor = COLOR_BULLET;
+        ctx.fillRect(this.x-2, this.y-2, 4, 4);
+        ctx.shadowBlur = 0;
     }
 }
 
 class Particle {
-    constructor(x, y) {
-        this.x = x;
-        this.y = y;
-        this.xv = (Math.random() - 0.5) * (Math.random() * 6);
-        this.yv = (Math.random() - 0.5) * (Math.random() * 6);
+    constructor(x, y, color) {
+        this.x = x; this.y = y; this.color = color;
+        this.xv = (Math.random()-0.5)*10;
+        this.yv = (Math.random()-0.5)*10;
         this.life = 1.0;
-        this.decay = Math.random() * 0.03 + 0.01;
     }
     update() {
-        this.x += this.xv;
-        this.y += this.yv;
-        this.life -= this.decay;
+        this.x += this.xv; this.y += this.yv;
+        this.life -= 0.03;
     }
     draw() {
-        ctx.fillStyle = `rgba(255, 255, 255, ${this.life})`;
+        ctx.fillStyle = this.color;
+        ctx.globalAlpha = this.life;
         ctx.fillRect(this.x, this.y, 3, 3);
+        ctx.globalAlpha = 1.0;
     }
 }
 
-// --- Game Logic ---
-
-function createAsteroidBelt() {
+function spawnAsteroids() {
     roids = [];
-    for (let i = 0; i < ROIDS_NUM + level; i++) {
+    for(let i=0; i<4 + Math.floor(score/1000); i++) {
         let x, y;
         do {
-            x = Math.floor(Math.random() * canvas.width);
-            y = Math.floor(Math.random() * canvas.height);
-        } while (distBetweenPoints(ship.x, ship.y, x, y) < ROIDS_SIZE * 2 + ship.r);
-        roids.push(new Asteroid(x, y));
-    }
-}
-
-function distBetweenPoints(x1, y1, x2, y2) {
-    return Math.sqrt((x2 - x1)**2 + (y2 - y1)**2);
-}
-
-function explodeShip() {
-    ship.dead = true;
-    AudioSys.explode();
-    for(let i=0; i<30; i++) {
-        particles.push(new Particle(ship.x, ship.y));
-    }
-    lives--;
-    livesEl.innerText = "LIVES: " + lives;
-    
-    if (lives > 0) {
-        setTimeout(() => {
-            ship = new Ship();
-        }, 2000);
-    } else {
-        setTimeout(gameOver, 2000);
-    }
-}
-
-function destroyAsteroid(index) {
-    const x = roids[index].x;
-    const y = roids[index].y;
-    const r = roids[index].r;
-
-    if (r >= ROIDS_SIZE / 2) { 
-        roids.push(new Asteroid(x, y, r / 2));
-        roids.push(new Asteroid(x, y, r / 2));
-        score += 20;
-    } else if (r >= ROIDS_SIZE / 4) { 
-        roids.push(new Asteroid(x, y, r / 2));
-        roids.push(new Asteroid(x, y, r / 2));
-        score += 50;
-    } else {
-        score += 100;
-    }
-    
-    for(let i=0; i<10; i++) particles.push(new Particle(x, y));
-    
-    roids.splice(index, 1);
-    AudioSys.explode();
-    scoreEl.innerText = "SCORE: " + score;
-
-    if (roids.length === 0) {
-        level++;
-        createAsteroidBelt();
+            x = Math.random() * canvas.width;
+            y = Math.random() * canvas.height;
+        } while(Math.hypot(ship.x-x, ship.y-y) < 200);
+        roids.push(new Asteroid(x, y, 80)); 
     }
 }
 
 function update() {
+    if(!running) return;
+
     ship.update();
-
-    for (let i = bullets.length - 1; i >= 0; i--) {
+    for(let i=bullets.length-1; i>=0; i--) {
         bullets[i].update();
-        if (bullets[i].remove) {
-            bullets.splice(i, 1);
-            continue;
-        }
-
-        for (let j = roids.length - 1; j >= 0; j--) {
-            let ax = roids[j].x;
-            let ay = roids[j].y;
-            let ar = roids[j].r;
-            let bx = bullets[i].x;
-            let by = bullets[i].y;
-
-            if (bx > ax - ar && bx < ax + ar && by > ay - ar && by < ay + ar) {
+        if(bullets[i].remove) { bullets.splice(i, 1); continue; }
+        
+        for(let j=roids.length-1; j>=0; j--) {
+            let r = roids[j];
+            if(bullets[i].x > r.x - r.r && bullets[i].x < r.x + r.r &&
+               bullets[i].y > r.y - r.r && bullets[i].y < r.y + r.r) {
+                
+                for(let k=0; k<10; k++) particles.push(new Particle(r.x, r.y, COLOR_ENEMY));
+                SFX.explode();
+                
+                if(r.r >= 20) {
+                    roids.push(new Asteroid(r.x, r.y, r.r/2));
+                    roids.push(new Asteroid(r.x, r.y, r.r/2));
+                    score += 50;
+                } else {
+                    score += 100;
+                }
+                
+                roids.splice(j, 1);
                 bullets.splice(i, 1);
-                destroyAsteroid(j);
+                
+                if(roids.length === 0) spawnAsteroids();
                 break;
             }
         }
     }
 
-    for (let i = 0; i < roids.length; i++) {
-        roids[i].update();
-        
-        if (!ship.dead) {
-            let ax = roids[i].x;
-            let ay = roids[i].y;
-            let ar = roids[i].r;
-            let sx = ship.x;
-            let sy = ship.y;
+    for(let r of roids) {
+        r.update();
+        if(!ship.dead && Math.abs(ship.x - r.x) < r.r + ship.r/2 && Math.abs(ship.y - r.y) < r.r + ship.r/2) {
+            ship.dead = true;
+            lives--;
+            SFX.explode();
+            for(let k=0; k<20; k++) particles.push(new Particle(ship.x, ship.y, COLOR_SHIP));
             
-            if (sx > ax - ar*0.8 && sx < ax + ar*0.8 && sy > ay - ar*0.8 && sy < ay + ar*0.8) {
-                explodeShip();
-            }
+            if(lives > 0) setTimeout(() => { ship = new Ship(); }, 2000);
+            else setTimeout(() => { 
+                running = false; 
+                SFX.stopMusic();
+                document.getElementById('game-over-screen').classList.remove('hidden'); 
+                document.getElementById('final-score').innerText = "SCORE: " + score; 
+            }, 2000);
         }
     }
 
-    for(let i = particles.length - 1; i >= 0; i--) {
+    for(let i=particles.length-1; i>=0; i--) {
         particles[i].update();
         if(particles[i].life <= 0) particles.splice(i, 1);
     }
+
+    document.getElementById('score-display').innerText = score.toString().padStart(4, '0');
+    document.getElementById('lives-display').innerText = Math.max(0, lives*33) + "%";
 }
 
 function draw() {
     ctx.fillStyle = 'black';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
+    
     ship.draw();
-    for (let b of bullets) b.draw();
-    for (let r of roids) r.draw();
-    for (let p of particles) p.draw();
+    for(let b of bullets) b.draw();
+    for(let r of roids) r.draw();
+    for(let p of particles) p.draw();
 }
 
-function loop(timestamp) {
-    if (!gameRunning) return;
-    lastTime = timestamp;
-    update();
-    draw();
+function loop() {
+    if(running) {
+        update();
+        draw();
+    }
     requestAnimationFrame(loop);
 }
 
-function startGame() {
-    AudioSys.init();
-    AudioSys.startMusic();
-    startScreen.classList.add('hidden');
-    gameOverScreen.classList.add('hidden');
-    gameRunning = true;
+function start() {
+    SFX.init();
+    running = true;
     score = 0;
     lives = 3;
-    level = 0;
     ship = new Ship();
     bullets = [];
     particles = [];
-    scoreEl.innerText = "SCORE: 0";
-    livesEl.innerText = "LIVES: 3";
-    createAsteroidBelt();
-    requestAnimationFrame(loop);
+    spawnAsteroids();
+    document.getElementById('start-screen').classList.add('hidden');
+    document.getElementById('game-over-screen').classList.add('hidden');
+    loop();
 }
 
-function gameOver() {
-    gameRunning = false;
-    AudioSys.stopMusic();
-    finalScoreEl.innerText = "SCORE: " + score;
-    gameOverScreen.classList.remove('hidden');
-}
+document.addEventListener('keydown', e => {
+    SFX.check();
+    if(e.code==='ArrowUp'||e.code==='KeyW') keys.up=true;
+    if(e.code==='ArrowLeft'||e.code==='KeyA') keys.left=true;
+    if(e.code==='ArrowRight'||e.code==='KeyD') keys.right=true;
+    if(e.code==='Space') keys.shoot=true;
+});
+document.addEventListener('keyup', e => {
+    if(e.code==='ArrowUp'||e.code==='KeyW') keys.up=false;
+    if(e.code==='ArrowLeft'||e.code==='KeyA') keys.left=false;
+    if(e.code==='ArrowRight'||e.code==='KeyD') keys.right=false;
+    if(e.code==='Space') keys.shoot=false;
+});
 
-// Event Listeners
-document.getElementById('start-btn').addEventListener('click', startGame);
-document.getElementById('restart-btn').addEventListener('click', startGame);
+const bindTouch = (id, key) => {
+    const el = document.getElementById(id);
+    el.addEventListener('touchstart', (e)=>{ e.preventDefault(); keys[key]=true; el.classList.add('active'); SFX.check(); });
+    el.addEventListener('touchend', (e)=>{ e.preventDefault(); keys[key]=false; el.classList.remove('active'); });
+    el.addEventListener('mousedown', ()=>{ keys[key]=true; el.classList.add('active'); });
+    el.addEventListener('mouseup', ()=>{ keys[key]=false; el.classList.remove('active'); });
+    el.addEventListener('mouseleave', ()=>{ keys[key]=false; el.classList.remove('active'); });
+};
+bindTouch('btn-left', 'left');
+bindTouch('btn-right', 'right');
+bindTouch('btn-thrust', 'up');
+bindTouch('btn-shoot', 'shoot');
+
+document.getElementById('start-btn').onclick = start;
+document.getElementById('restart-btn').onclick = start;
+document.getElementById('settings-btn').onclick = (e) => { e.stopPropagation(); document.getElementById('settings-modal').classList.toggle('show'); };
+document.getElementById('sfx-toggle').onchange = (e) => SFX.toggleSFX(e.target.checked);
+document.getElementById('music-toggle').onchange = (e) => SFX.toggleMusic(e.target.checked);
+document.getElementById('touch-toggle').onchange = (e) => { document.getElementById('mobile-controls').style.display = e.target.checked?'flex':'none'; };
 
 </script>
 </body>
